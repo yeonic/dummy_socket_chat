@@ -46,7 +46,12 @@ class SocClient:
             while True:
                 # receive the data and decode it to normal string
                 data = self.cliSocket.recv(1024)
+                if not data:
+                    print("Server disconnected!")
+                    break
                 dec = data.decode()
+
+                print(dec)
 
             self.cliSocket.close()
 
