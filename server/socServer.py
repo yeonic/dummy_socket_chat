@@ -18,10 +18,9 @@ class SocServer:
 
         try:
             while True:
-                print(">>> Waiting for clients")
+                print(">>> Waiting for clients...\n# of activated users: " + str(len(self.connected_users)))
                 (client, addr) = self.sevSocket.accept()
-                self.connected_users.append(User("", client, addr))
-                start_new_thread(self.client_accept_threaded, (client, addr))
+                start_new_thread(self.accept_client_threaded, (client, addr))
 
         finally:
             self.sevSocket.close()
@@ -29,22 +28,22 @@ class SocServer:
 
     def propagate(self, now_user, message):
         for other in self.connected_users:
-            if not other == now_user:
-                other.client.sendall(message)
+            if other is not now_user:
+                other.client.send(message)
         print(">>> Message successfully propagated.")
 
-    def client_accept_threaded(self, client: socket, addr):
+    def accept_client_threaded(self, client: socket, addr):
         # get nickname and append to connected list
         nick = client.recv(1024)
         now_user = User(nick.decode(), client, addr)
         self.connected_users.append(now_user)
 
         # print message to the server console
-        message = now_user.nickname + "(" + addr[0] + ":" + addr[1] + ") has joined to the chatroom!!"
-        print(message)
+        message = now_user.nickname + "(" + str(addr[0]) + ":" + str(addr[1]) + ") has joined the chatroom!!\n"
+        print(message, end='')
 
         # send the welcome message to the client
-        client.sendall(">>> You have joined the chatroom now.")
+        client.send(">>> You have joined the chatroom now.\n".encode())
 
         # and send the message to the other clients
         self.propagate(now_user, message.encode())
@@ -52,16 +51,16 @@ class SocServer:
         while True:
             try:
                 chat = client.recv(1024)
-                temp_chat = (now_user.nickname + ": " + chat.decode()).encode()
+                temp_chat = (now_user.nickname + ": " + chat.decode() + '\n')
 
                 if not chat:
-                    message = "User \"" + now_user.nickname + "\" left chatroom."
-                    print(message)
+                    message = "User \"" + now_user.nickname + "\" left chatroom.\n"
+                    print(message, end='')
                     self.propagate(now_user, message.encode())
                     break
 
-                print("chat received from " + now_user.nickname + "(" + addr[0] + ":" + addr[1] + ")")
-                self.propagate(now_user, temp_chat)
+                print("chat received from " + now_user.nickname + "(" + str(addr[0]) + ":" + str(addr[1]) + ")")
+                self.propagate(now_user, temp_chat.encode())
 
             except ConnectionResetError as e:
                 print("Error occurred: " + e)
