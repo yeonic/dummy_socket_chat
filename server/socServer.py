@@ -18,7 +18,7 @@ class SocServer:
 
         try:
             while True:
-                print(">>> Waiting for clients...\n# of activated users: " + str(len(self.connected_users)))
+                print(">>> Waiting for clients...")
                 (client, addr) = self.sevSocket.accept()
                 start_new_thread(self.accept_client_threaded, (client, addr))
 
@@ -30,7 +30,7 @@ class SocServer:
         for other in self.connected_users:
             if other is not now_user:
                 other.client.send(message)
-        print(">>> Message successfully propagated.")
+        print(">>> Message successfully propagated.\n")
 
     def accept_client_threaded(self, client: socket, addr):
         # get nickname and append to connected list
@@ -39,23 +39,24 @@ class SocServer:
         self.connected_users.append(now_user)
 
         # print message to the server console
-        message = now_user.nickname + "(" + str(addr[0]) + ":" + str(addr[1]) + ") has joined the chatroom!!\n"
-        print(message, end='')
+        message = now_user.nickname + "(" + str(addr[1]) + ") has joined the chatroom!!"
+        message += "\nNow participants: " + str(len(self.connected_users))
+        print(message)
 
         # send the welcome message to the client
         client.send(">>> You have joined the chatroom now.\n".encode())
 
         # and send the message to the other clients
-        self.propagate(now_user, message.encode())
+        self.propagate(now_user, ("\n"+message+"\n").encode())
 
         while True:
             try:
                 chat = client.recv(1024)
-                temp_chat = (now_user.nickname + ": " + chat.decode() + '\n')
+                temp_chat = now_user.nickname + "(" + str(now_user.addr[1]) + "): " + chat.decode()
 
                 if not chat:
-                    message = "User \"" + now_user.nickname + "\" left chatroom.\n"
-                    print(message, end='')
+                    message = "User \"" + now_user.nickname + "\" left chatroom."
+                    print(message)
                     self.propagate(now_user, message.encode())
                     break
 
